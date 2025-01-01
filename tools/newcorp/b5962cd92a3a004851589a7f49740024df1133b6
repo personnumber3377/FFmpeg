@@ -1,0 +1,1 @@
+blend=all_expr='A*(if(gt-(:T'A*(i/10)))'

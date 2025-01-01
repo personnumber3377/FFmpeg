@@ -1,0 +1,9 @@
+enable-libvorbis --enable-libvpx --enable-libxml2 --enable-nonfree --disable-libdrm --disable-muxers --disable-protocols --disable-demuxer=rtp,rtsp,sdp --disable-devices --disable-shared --disable-doc --disable-programs'
+
+
+
+
+libvorbis-dev
+
+libvpx-dev
+

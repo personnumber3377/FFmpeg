@@ -63,9 +63,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     // This fuzzer is based on the source found in tools/uncoded_frame.c
     int ret;
-    if (size < 3) { // Skip empty or nonsensical short inputs.
+    // void *memset(void s[.n], int c, size_t n);
+    uint8_t buf[10000];
+    if (size < 3 || size > (sizeof(buf)-1)) { // Skip empty or nonsensical short inputs.
         return 0;
     }
+
+    memset(buf, 0x00, 10000);
+
     // Now check for newline and space which are banned characters.
     //  Based on https://stackoverflow.com/a/9188556  thanks to stackoverflow user https://stackoverflow.com/users/65863/remy-lebeau
 
@@ -81,12 +86,22 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         }
     }
     // Now add a null byte at the end.
-    data[size-1] = 0x00; // Add null byte at the end.
+    // We can not do this because we get an error saying that the constant input data was changed: SUMMARY: libFuzzer: overwrites-const-input
+    //data[size-1] = 0x00; // Add null byte at the end.
+    // So we memcpy the data to a mutable buffer and add the thing.
+
+    //        void *memcpy(void dest[restrict .n], const void src[restrict .n],
+    //                size_t n);
+
+    // buf
+    memcpy(buf, data, size);
+    buf[size] = 0x00; // Add the null terminator
+
     AVFilterGraph *in_graph = NULL;
     if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.
         return 0;
     }
-    ret = avfilter_graph_parse_ptr(in_graph, data, NULL, NULL, NULL);
+    ret = avfilter_graph_parse_ptr(in_graph, buf, NULL, NULL, NULL);
     // Now free the graph object to avoid memory leaks...
     avfilter_graph_free(&in_graph); // This is a bit weird that this expects a pointer but idk....
     return 0;
