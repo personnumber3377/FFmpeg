@@ -39,7 +39,7 @@ typedef struct SplitContext {
     const AVClass *class;
     int nb_outputs;
 } SplitContext;
-
+/*
 static av_cold int split_init(AVFilterContext *ctx)
 {
     SplitContext *s = ctx->priv;
@@ -56,6 +56,35 @@ static av_cold int split_init(AVFilterContext *ctx)
         if ((ret = ff_append_outpad_free_name(ctx, &pad)) < 0)
             return ret;
     }
+
+    return 0;
+}
+*/
+
+static av_cold int split_init(AVFilterContext *ctx)
+{
+    SplitContext *s = ctx->priv;
+    int i, ret;
+
+    if (s->nb_outputs > 100) { // Too many outputs...
+        return -1;
+    }
+
+    printf("Jumping to the loop...\n");
+    printf("The thing s->nb_outputs: %i\n", s->nb_outputs);
+    for (i = 0; i < s->nb_outputs; i++) {
+        AVFilterPad pad = { 0 };
+        printf("i == %i\n", i);
+        pad.type = ctx->filter->inputs[0].type;
+        pad.name = av_asprintf("output%d", i);
+        if (!pad.name)
+            return AVERROR(ENOMEM);
+
+        if ((ret = ff_append_outpad_free_name(ctx, &pad)) < 0)
+            return ret;
+    }
+
+    printf("Exited the loop...\n");
 
     return 0;
 }
