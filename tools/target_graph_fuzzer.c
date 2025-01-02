@@ -120,6 +120,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     if (strstr(buf, "mix=")) { // This is to avoid the timeout
         return 0;
     }
+    
 
     AVFilterGraph *in_graph = NULL;
     if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.
