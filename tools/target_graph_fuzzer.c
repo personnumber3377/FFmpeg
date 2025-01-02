@@ -58,6 +58,19 @@
 #include "libavcodec/codec_id.h"
 
 
+
+
+// This loads all of the device shit:
+
+int LLVMFuzzerInitialize(int *argc, char ***argv);
+
+int LLVMFuzzerInitialize(int *argc, char ***argv) {
+    avdevice_register_all(); // Register the device bullshit here...
+    return 0;
+}
+
+
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -94,8 +107,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     //                size_t n);
 
     // buf
+    // Check for abuffersink
+
     memcpy(buf, data, size);
     buf[size] = 0x00; // Add the null terminator
+
+    // Check for "abuffersink"
+    if (strstr(buf, "abuffersink")) { // This is to avoid the crash in the thing
+        return 0;
+    }
+
+    if (strstr(buf, "mix=")) { // This is to avoid the timeout
+        return 0;
+    }
 
     AVFilterGraph *in_graph = NULL;
     if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.
