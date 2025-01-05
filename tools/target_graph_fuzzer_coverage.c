@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "libavutil/avassert.h"
 #include "libavutil/mem.h"
 #include "libavdevice/avdevice.h"
@@ -57,11 +58,12 @@
 #include "libavformat/avformat.h"
 #include "libavcodec/codec_id.h"
 
-
+// ssize_t read(int fd, void buf[.count], size_t count);
 
 
 // This loads all of the device shit:
 
+/*
 
 int LLVMFuzzerInitialize(int *argc, char ***argv);
 
@@ -75,19 +77,32 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-    //int main(int argc, char** argv) {
+
+*/
+
+int main(int argc, char** argv) {
     avdevice_register_all(); // Register the device bullshit here...
     // This fuzzer is based on the source found in tools/uncoded_frame.c
+    int size;
+
     int ret;
     // void *memset(void s[.n], int c, size_t n);
     uint8_t buf[300];
-    if (size < 3 || size > (299)) { // Skip empty or nonsensical short inputs.
-        return 0;
-    }
+    
 
     memset(buf, 0x00, sizeof(buf));
 
 
+    // Read from stdin..
+
+    size = read(0, buf, sizeof(buf)-1); // Reserve space for null byte too.
+
+
+    if (size < 3 || size > (299)) { // Skip empty or nonsensical short inputs.
+        return 0;
+    }
+
+    // Read from stdin... 
 
     // Now check for newline and space which are banned characters.
     //  Based on https://stackoverflow.com/a/9188556  thanks to stackoverflow user https://stackoverflow.com/users/65863/remy-lebeau
@@ -96,7 +111,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     //bool allZeros = true;
     for (int i = 0; i < size; ++i)
     {
-        if (data[i] == 0x0a || data[i] == 0x20) // For newline or space character
+        if (buf[i] == 0x0a || buf[i] == 0x20) // For newline or space character
         {
             //allZeros = false;
             //break;
@@ -118,7 +133,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     //buf[size] = 0x00; // Add the null terminator
 
     // uint8_t* buf = (uint8_t*) malloc(size+1);
-    memcpy(buf, data, size);
+    //memcpy(buf, data, size);
     buf[size] = 0x00;
     // Check for "abuffersink"
     if (strstr(buf, "abuffersink")) { // This is to avoid the crash in the thing
@@ -137,7 +152,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         return 0;
     }
 
-
+    printf("Parsing this thing: %s\n", buf);
 
     AVFilterGraph *in_graph = NULL;
     if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.

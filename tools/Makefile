@@ -26,6 +26,13 @@ tools/target_sws_fuzzer.o: tools/target_sws_fuzzer.c
 tools/target_swr_fuzzer.o: tools/target_swr_fuzzer.c
 	$(COMPILE_C)
 
+tools/betterfuzzer.o: tools/betterfuzzer.c
+	$(COMPILE_C)
+
+# Here is the video decoder.
+tools/decode_filter_video.o: tools/decode_filter_video.c
+	$(COMPILE_C)
+
 tools/enc_recon_frame_test$(EXESUF): tools/decode_simple.o
 tools/venc_data_dump$(EXESUF): tools/decode_simple.o
 tools/scale_slice_test$(EXESUF): tools/decode_simple.o
