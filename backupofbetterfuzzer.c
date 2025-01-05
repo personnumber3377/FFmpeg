@@ -275,9 +275,8 @@ void try_fuzz_audio() {
     AVFrame *filt_frame = av_frame_alloc();
 
     if (!packet || !frame || !filt_frame) {
-        //fprintf(stderr, "Could not allocate frame or packet\n");
-        //exit(1);
-        return 1;
+        fprintf(stderr, "Could not allocate frame or packet\n");
+        exit(1);
     }
 
     fmt_ctx = avformat_alloc_context();
@@ -296,7 +295,7 @@ void try_fuzz_audio() {
         if (packet->stream_index == audio_stream_index) {
             ret = avcodec_send_packet(dec_ctx, packet);
             if (ret < 0) {
-                //fprintf(stderr, "Ok, so we afefefeffefefefefew going to the thing...\n");
+                fprintf(stderr, "Ok, so we afefefeffefefefefew going to the thing...\n");
                 av_log(NULL, AV_LOG_ERROR, "Error while sending a packet to the decoder\n");
                 break;
             }
@@ -342,7 +341,7 @@ void try_fuzz_audio() {
             av_log(NULL, AV_LOG_ERROR, "Error while closing the filtergraph\n");
             goto end;
         }
-        //printf("Pulling the rest of the bullshit here...\n");
+        printf("Pulling the rest of the bullshit here...\n");
         /* pull remaining frames from the filtergraph */
         while (1) {
             ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
@@ -399,9 +398,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 	memcpy(fuzzbuf, data, size);
 	// Now call the function
 	// try_fuzz_audio();
-	//fprintf(stderr, "Now trying to fuzz the video processing part...\n");
+	fprintf(stderr, "Now trying to fuzz the video processing part...\n");
 	try_fuzz_video(); // Call the video decoder thing...
-	//fprintf(stderr, "Returned from the bullshit fuck.....\n");
+	fprintf(stderr, "Returned from the bullshit fuck.....\n");
 	return 0; // Now just exit...
 }
 
@@ -689,7 +688,7 @@ int try_fuzz_video(void);
 //int main(int argc, char **argv)
 int try_fuzz_video() // This is based on the very original main function...
 {
-	//fprintf(stderr, "Now doing the bullshit fuck.....\n");
+	fprintf(stderr, "Now doing the bullshit fuck.....\n");
     int ret;
     AVPacket *packet;
     AVFrame *frame;
@@ -710,7 +709,7 @@ int try_fuzz_video() // This is based on the very original main function...
     filt_frame = av_frame_alloc();
     packet = av_packet_alloc();
     if (!frame || !filt_frame || !packet) {
-        //fprintf(stderr, "Could not allocate frame or packet\n");
+        fprintf(stderr, "Could not allocate frame or packet\n");
         return 1;
         //exit(1);
     }
@@ -794,7 +793,7 @@ end:
     avformat_free_context(fmt_ctx);
 
     if (ret < 0 && ret != AVERROR_EOF) {
-        //fprintf(stderr, "Error occurred: %s\n", av_err2str(ret));
+        fprintf(stderr, "Error occurred: %s\n", av_err2str(ret));
         //exit(1);
         return 1;
     }
