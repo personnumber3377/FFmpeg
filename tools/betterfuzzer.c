@@ -277,7 +277,8 @@ void try_fuzz_audio() {
     if (!packet || !frame || !filt_frame) {
         //fprintf(stderr, "Could not allocate frame or packet\n");
         //exit(1);
-        return 1;
+        return;
+        //return 1;
     }
 
     fmt_ctx = avformat_alloc_context();
@@ -387,6 +388,7 @@ end:
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+	int ret;
 	// Main fuzzing entrypoint.
 	// Just copy the entire thing.
 	if (size >= sizeof(fuzzbuf)-1) {
@@ -397,9 +399,49 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     //                size_t n);
 	memset(fuzzbuf, 0x00, sizeof(fuzzbuf));
 	memcpy(fuzzbuf, data, size);
+
+
+	/*
+
+	AVFilterGraph *in_graph = NULL;
+    if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.
+        // free(buf);
+        return 0;
+    }
+    ret = avfilter_graph_parse_ptr(in_graph, buf, NULL, NULL, NULL);
+    // Now free the graph object to avoid memory leaks...
+    avfilter_graph_free(&in_graph); // This is a bit weird that this expects a pointer but idk....
+	
+	*/
 	// Now call the function
 	// try_fuzz_audio();
 	//fprintf(stderr, "Now trying to fuzz the video processing part...\n");
+
+	// First verify the syntax of the thing...
+
+	AVFilterGraph *in_graph = NULL;
+    if (!(in_graph = avfilter_graph_alloc())) { // If allocation fails, just bail out here early.
+        // free(buf);
+        return 0;
+    }
+    ret = avfilter_graph_parse_ptr(in_graph, fuzzbuf, NULL, NULL, NULL);
+
+
+
+    //    if ((ret = avfilter_graph_parse_ptr(filter_graph, filters_descr,
+    //                                    &inputs, &outputs, NULL)) < 0)
+
+
+
+    // Now free the graph object to avoid memory leaks...
+    avfilter_graph_free(&in_graph); // This is a bit weird that this expects a pointer but idk....
+    if (ret < 0) { // Invalid syntax of the graph, therefore just return here.
+    	//fprintf(stderr, "The graph was NOT valid!");
+    	return 0;
+    }
+
+    //fprintf(stderr, "The graph seems to be valid...\n");
+
 	try_fuzz_video(); // Call the video decoder thing...
 	//fprintf(stderr, "Returned from the bullshit fuck.....\n");
 	return 0; // Now just exit...
@@ -501,13 +543,14 @@ static int open_input_file_video()
     const AVCodec *dec;
     int ret;
 
+    //fprintf(stderr, "Called open_input_file_video\n");
 
     data_pointer = 0; // Set  to zero before starting to read...
     //const AVCodec *dec;
     //int ret = 0;
     fp_open_video = fmemopen(STATIC_FLV_INPUT, sizeof(STATIC_FLV_INPUT), "r"); // fopen("small.mp3", "rb");
     if (fp_open_video == NULL) {
-        return 1;
+        //return 1;
     }
     inbuffer = (unsigned char*)av_malloc(sizeof(STATIC_FLV_INPUT));
     avio_in =avio_alloc_context(inbuffer, sizeof(STATIC_FLV_INPUT),0,NULL,read_buffer_video,NULL,NULL);  
@@ -560,7 +603,10 @@ static int init_filters_video(const char *filters_descr)
     AVFilterInOut *inputs  = avfilter_inout_alloc();
     AVRational time_base = fmt_ctx->streams[video_stream_index]->time_base;
 
+    //fprintf(stderr, "Called init_filters_video\n");
+
     filter_graph = avfilter_graph_alloc();
+    //fprintf(stderr, "after avfilter_graph_alloc\n");
     if (!outputs || !inputs || !filter_graph) {
         ret = AVERROR(ENOMEM);
         goto end;
@@ -575,6 +621,7 @@ static int init_filters_video(const char *filters_descr)
 
     ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
                                        args, NULL, filter_graph);
+    //fprintf(stderr, "after avfilter_graph_create_filter\n");
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
         goto end;
@@ -582,6 +629,7 @@ static int init_filters_video(const char *filters_descr)
 
     /* buffer video sink: to terminate the filter chain. */
     buffersink_ctx = avfilter_graph_alloc_filter(filter_graph, buffersink, "out");
+    //fprintf(stderr, "after avfilter_graph_alloc_filter\n");
     if (!buffersink_ctx) {
         av_log(NULL, AV_LOG_ERROR, "Cannot create buffer sink\n");
         ret = AVERROR(ENOMEM);
@@ -628,12 +676,17 @@ static int init_filters_video(const char *filters_descr)
     inputs->pad_idx    = 0;
     inputs->next       = NULL;
 
+    //fprintf(stderr, "before avfilter_graph_parse_ptr\n");
+
     if ((ret = avfilter_graph_parse_ptr(filter_graph, filters_descr,
                                     &inputs, &outputs, NULL)) < 0)
         goto end;
 
+    //fprintf(stderr, "before avfilter_graph_config\n");
     if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
         goto end;
+
+    //fprintf(stderr, "after avfilter_graph_config\n");
 
 end:
     avfilter_inout_free(&inputs);
@@ -696,7 +749,7 @@ int try_fuzz_video() // This is based on the very original main function...
     AVFrame *filt_frame;
     /*
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s file\n", argv[0]);
+        //fprintf(stderr, "Usage: %s file\n", argv[0]);
         exit(1);
     }
     */
@@ -726,6 +779,7 @@ int try_fuzz_video() // This is based on the very original main function...
             break;
 
         if (packet->stream_index == video_stream_index) {
+        	//fprintf(stderr, "Sending frame...\n");
             ret = avcodec_send_packet(dec_ctx, packet);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Error while sending a packet to the decoder\n");
@@ -733,6 +787,7 @@ int try_fuzz_video() // This is based on the very original main function...
             }
 
             while (ret >= 0) {
+            	//fprintf(stderr, "Receiving frame...\n");
                 ret = avcodec_receive_frame(dec_ctx, frame);
                 if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                     break;
@@ -742,7 +797,7 @@ int try_fuzz_video() // This is based on the very original main function...
                 }
 
                 frame->pts = frame->best_effort_timestamp;
-
+                //fprintf(stderr, "Sending frame to filtergraph...\n");
                 /* push the decoded frame into the filtergraph */
                 if (av_buffersrc_add_frame_flags(buffersrc_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF) < 0) {
                     av_log(NULL, AV_LOG_ERROR, "Error while feeding the filtergraph\n");
@@ -756,7 +811,8 @@ int try_fuzz_video() // This is based on the very original main function...
                         break;
                     if (ret < 0)
                         goto end;
-                    display_frame(filt_frame, buffersink_ctx->inputs[0]->time_base);
+                    // display_frame(filt_frame, buffersink_ctx->inputs[0]->time_base);
+                    //fprintf(stderr, "Decoded frame...\n");
                     av_frame_unref(filt_frame);
                 }
                 av_frame_unref(frame);
@@ -778,7 +834,8 @@ int try_fuzz_video() // This is based on the very original main function...
                 break;
             if (ret < 0)
                 goto end;
-            display_frame(filt_frame, buffersink_ctx->inputs[0]->time_base);
+            // display_frame(filt_frame, buffersink_ctx->inputs[0]->time_base);
+            //fprintf(stderr, "Decoded frame end...\n");
             av_frame_unref(filt_frame);
         }
     }

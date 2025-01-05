@@ -413,6 +413,8 @@ static void (*av_log_callback)(void*, int, const char*, va_list) =
 
 void av_log(void* avcl, int level, const char *fmt, ...)
 {
+    // This is just here because we don't even want to log anything.
+    return;
     va_list vl;
     va_start(vl, fmt);
     av_vlog(avcl, level, fmt, vl);
